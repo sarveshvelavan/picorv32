@@ -1,0 +1,55 @@
+name: PAMF lab checks
+
+on:
+  push:
+    paths:
+      - 'PAMF-EndSem-Lab/**'
+      - '.github/workflows/pamf-rtl.yml'
+  pull_request:
+    paths:
+      - 'PAMF-EndSem-Lab/**'
+      - '.github/workflows/pamf-rtl.yml'
+  workflow_dispatch:
+
+jobs:
+  rtl-and-firmware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Icarus Verilog
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog gcc
+      - name: Q1 pipeline model
+        run: |
+          iverilog -g2012 -s tb_pipeline5 -o /tmp/q1 PAMF-EndSem-Lab/experiments/01-pipeline/pipeline5.v PAMF-EndSem-Lab/experiments/01-pipeline/tb_pipeline5.v
+          vvp /tmp/q1
+      - name: Q2 PicoRV32 bus smoke test
+        run: |
+          iverilog -g2012 -s tb_picorv32_framework -o /tmp/q2 picorv32.v PAMF-EndSem-Lab/experiments/02-picorv32-framework/picorv32_system.v PAMF-EndSem-Lab/experiments/02-picorv32-framework/tb_picorv32_framework.v
+          vvp /tmp/q2
+      - name: Q3 PicoRV32 reset timing
+        run: |
+          iverilog -g2012 -s tb_picorv32_reset -o /tmp/q3 picorv32.v PAMF-EndSem-Lab/experiments/02-picorv32-framework/picorv32_system.v PAMF-EndSem-Lab/experiments/03-clock-reset/clock_reset_source.v PAMF-EndSem-Lab/experiments/03-clock-reset/tb_picorv32_reset.v
+          vvp /tmp/q3
+      - name: Q4 variable latency memory
+        run: |
+          iverilog -g2012 -s tb_variable_latency_memory -o /tmp/q4 PAMF-EndSem-Lab/experiments/04-variable-memory/variable_latency_memory.v PAMF-EndSem-Lab/experiments/04-variable-memory/tb_variable_latency_memory.v
+          vvp /tmp/q4
+      - name: Q7 temperature peripheral
+        run: |
+          iverilog -g2012 -s tb_temperature_peripheral -o /tmp/q7 PAMF-EndSem-Lab/experiments/07-temperature-system/temperature_peripheral.v PAMF-EndSem-Lab/experiments/07-temperature-system/tb_temperature_peripheral.v
+          vvp /tmp/q7
+      - name: Q9 peripheral decoder
+        run: |
+          iverilog -g2012 -s tb_peripheral_decoder -o /tmp/q9 PAMF-EndSem-Lab/experiments/09-peripheral-decoder/peripheral_decoder.v PAMF-EndSem-Lab/experiments/09-peripheral-decoder/tb_peripheral_decoder.v
+          vvp /tmp/q9
+      - name: Q12 calibration FSM
+        run: |
+          iverilog -g2012 -s tb_temperature_calibration_fsm -o /tmp/q12 PAMF-EndSem-Lab/experiments/12-calibration-fsm/temperature_calibration_fsm.v PAMF-EndSem-Lab/experiments/12-calibration-fsm/tb_temperature_calibration_fsm.v
+          vvp /tmp/q12
+      - name: C firmware syntax
+        run: |
+          for source in PAMF-EndSem-Lab/experiments/*/*.c; do
+            gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only "$source"
+          done
